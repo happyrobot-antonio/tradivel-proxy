@@ -1,7 +1,9 @@
 import express from 'express';
 import cors from 'cors';
+import swaggerUi from 'swagger-ui-express';
 import { config } from './config.js';
 import { proxyRequest } from './proxy.js';
+import { swaggerSpec } from './swagger.js';
 
 const app = express();
 
@@ -14,6 +16,30 @@ app.use((req, res, next) => {
   const timestamp = new Date().toISOString();
   console.log(`[${timestamp}] ${req.method} ${req.path}`);
   next();
+});
+
+// ============================================
+// SWAGGER DOCUMENTATION
+// ============================================
+
+const swaggerOptions = {
+  customCss: `
+    .swagger-ui .topbar { display: none }
+    .swagger-ui .info .title { color: #3b82f6 }
+  `,
+  customSiteTitle: 'Tradivel Proxy API - Documentación',
+};
+
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerOptions));
+
+// Redirect root to docs
+app.get('/', (req, res) => {
+  res.redirect('/docs');
+});
+
+// OpenAPI JSON endpoint
+app.get('/openapi.json', (req, res) => {
+  res.json(swaggerSpec);
 });
 
 // ============================================
@@ -104,12 +130,16 @@ app.listen(config.port, () => {
 ║  Server running on: http://localhost:${config.port}              ║
 ║  Target API: ${config.tradivelApiUrl}       ║
 ╠═══════════════════════════════════════════════════════╣
+║  📚 DOCUMENTATION: http://localhost:${config.port}/docs          ║
+╠═══════════════════════════════════════════════════════╣
 ║  ENDPOINTS:                                           ║
 ║  POST /login/token              → Passthrough         ║
 ║  POST /visitas/getVisitas       → { visitas, total }  ║
 ║  POST /visitas/getTecnicos      → { tecnicos, total } ║
 ║  POST /visitas/intentoContactoVisita → Passthrough    ║
 ║  GET  /health                   → Health check        ║
+║  GET  /docs                     → Swagger UI          ║
+║  GET  /openapi.json             → OpenAPI Spec        ║
 ╚═══════════════════════════════════════════════════════╝
   `);
 });
